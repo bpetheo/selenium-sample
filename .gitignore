@@ -102,3 +102,12 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# PyCharm project files
+.idea
+
+# Chrome profile
+chrome_profile
+
+# Instance configuration
+config.ini
