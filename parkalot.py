@@ -69,6 +69,7 @@ def get_green_days(ignored_days):
                 days.append({
                     'name': day_name,
                     'free_spots': free_spots,
+                    'btn_more': day.find_element_by_xpath('.//button[contains(text(), "More")]'),
                     'btn_reserve': day.find_element_by_xpath('.//button[contains(text(), "Reserve")]'),
                 })
                 debug_print('{} spot(s) found for {}!'.format(free_spots, day_name), 1)
@@ -147,7 +148,7 @@ def reserve_spot(day):
         # If there are multiple free spots, try to reserve the preferred ones first
         debug_print('Multiple spots are available, trying to reserve a preferred one', 1)
         original_url = driver.current_url
-        day.find_element_by_xpath('.//button[contains(text(), "More")]').click()
+        day['btn_more'].click()
         free_spots = get_free_spots()
         for ps in preferred_spots:
             spot = get_spot_by_number(ps, free_spots)
