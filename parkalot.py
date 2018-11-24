@@ -191,6 +191,7 @@ def refresh_page():
 if __name__ == '__main__':
     # Handle command line arguments
     parser = argparse.ArgumentParser()
+    parser.add_argument('config_section', type=str, help='which section to use from config.ini')
     parser.add_argument('--ignore', nargs='+', help="don't send alerts for these days")
     parser.add_argument('-v', '--verbose', action='count', help="set the verbosity of the output e.g.: -vv", default=0)
     parser.add_argument('--headless', action='store_true', help="run browser in headless mode")
@@ -200,7 +201,7 @@ if __name__ == '__main__':
     # Login credentials
     config_parser = configparser.ConfigParser()
     config_parser.read('config.ini')
-    config = config_parser['parkalot_bence']
+    config = config_parser[args.config_section]
     user = config['user']
     password = config['password']
     url = config['url']
