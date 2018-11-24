@@ -14,7 +14,7 @@ def debug_print(message, verbosity_level):
 
 def log_prefix():
     # [HH:MM:SS]
-    return '[{}] '.format(datetime.now().strftime('%X'))
+    return '[{}] '.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
 def is_logged_in():
