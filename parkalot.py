@@ -170,8 +170,11 @@ def reserve_spot(day):
 def refresh_if_needed():
     # Refresh page periodically (currently every hour)
     now = time.localtime()
-    if now.tm_min == 0 and now.tm_sec == 0:
-        debug_print('Refreshing page...', 1)
+    if now.tm_hour in [23, 0, 1] and now.tm_min == 0 and now.tm_sec == 0:
+        debug_print('Refreshing page (new day)...', 1)
+        refresh_page()
+    elif now.tm_hour not in [22, 23, 0] and now.tm_min == 58 and now.tm_sec == 0:
+        debug_print('Refreshing page (hourly)...', 1)
         refresh_page()
 
 
