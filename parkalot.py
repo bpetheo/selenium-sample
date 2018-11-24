@@ -114,8 +114,7 @@ def do_reservation(btn_reserve):
         debug_print('Reservation confirmed', 1)
     except NoSuchElementException:
         debug_print('Captcha, refreshing', 1)
-        driver.refresh()
-        time.sleep(2)
+        refresh_page()
 
 
 def reserve_spot(day):
@@ -153,8 +152,7 @@ def reserve_spot(day):
             if spot:
                 debug_print('Preferred spot {} is free, reserving'.format(ps), 1)
                 do_reservation(spot['btn_reserve'])
-                driver.get(original_url)
-                time.sleep(2)
+                get_page(original_url)
                 return
             else:
                 debug_print('Preferred spot {} is not free, skipping'.format(ps), 1)
@@ -162,8 +160,7 @@ def reserve_spot(day):
         # If none of the preferred spaces are available simply reserve the first one available
         if len(free_spots) > 0:
             do_reservation(free_spots[0]['btn_reserve'])
-        driver.get(original_url)
-        time.sleep(2)
+        get_page(original_url)
 
 
 def refresh_if_needed():
@@ -171,8 +168,17 @@ def refresh_if_needed():
     now = time.localtime()
     if now.tm_min == 0 and now.tm_sec == 0:
         debug_print('Refreshing page...', 1)
-        driver.refresh()
-        time.sleep(2)
+        refresh_page()
+
+
+def get_page(url):
+    driver.get(url)
+    time.sleep(1)
+
+
+def refresh_page:
+    driver.refresh()
+    time.sleep(1)
 
 
 if __name__ == '__main__':
@@ -203,8 +209,7 @@ if __name__ == '__main__':
     driver_options.add_argument('user-data-dir=./chrome_profile')
     driver = webdriver.Chrome(chrome_options=driver_options)
     debug_print('Getting page...', 1)
-    driver.get(url + '/#/client')
-    time.sleep(2)
+    get_page(url + '/#/client')
     driver.implicitly_wait(5)
 
     # Start the main loop
@@ -223,7 +228,6 @@ if __name__ == '__main__':
                 reserve_spot(green_day)
 
             # Sleep the main loop for a second to avoid being a resource hog
-            time.sleep(1)
     except KeyboardInterrupt:
         pass
     finally:
