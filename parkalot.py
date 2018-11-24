@@ -110,6 +110,7 @@ def get_spot_by_number(spot_number, available_spots):
 
 def do_reservation(btn_reserve):
     # Clicks the provided 'Reserve' button. Waits for confirmation
+    time.sleep(1)
     btn_reserve.click()
     debug_print('Waiting for reservation confirmation...', 2)
     try:
