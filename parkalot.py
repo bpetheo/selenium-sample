@@ -199,9 +199,6 @@ if __name__ == '__main__':
     user = config['user']
     password = config['password']
     url = config['url']
-    print('config:')
-    print([url, user, password])
-    exit(0)
 
     # Initialize webdriver
     debug_print('Starting driver...', 1)
