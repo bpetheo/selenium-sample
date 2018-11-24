@@ -73,7 +73,7 @@ def get_green_days(ignored_days):
                     'btn_reserve': day.find_element_by_xpath('.//button[contains(text(), "Reserve")]'),
                 })
                 debug_print('{} spot(s) found for {}!'.format(free_spots, day_name), 1)
-        except (ValueError, NoSuchElementException):
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
             pass
     return days
 
