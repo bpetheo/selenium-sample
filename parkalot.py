@@ -173,12 +173,12 @@ def refresh_if_needed():
         refresh_page()
 
 
-def get_page(url):
-    driver.get(url)
+def get_page(page_url):
+    driver.get(page_url)
     time.sleep(1)
 
 
-def refresh_page:
+def refresh_page():
     driver.refresh()
     time.sleep(1)
 
