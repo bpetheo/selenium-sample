@@ -232,6 +232,7 @@ if __name__ == '__main__':
                 reserve_spot(green_day)
 
             # Sleep the main loop for a second to avoid being a resource hog
+            time.sleep(1)
     except KeyboardInterrupt:
         pass
     finally:
