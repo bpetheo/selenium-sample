@@ -125,16 +125,6 @@ def reserve_spot(day):
     # Reverse a spot on a given day
     # In case multiple spots are available, it tries to reserve one from the preferred list
     debug_print('Reserving spot...', 1)
-    # Try to reserve these spots first
-    preferred_spots = [
-        'C 1065',
-        'C 1066',
-        'C 1067',
-        'C 1068',
-        'C 1069',
-        'C 1071',
-        'C 1070'
-    ]
 
     if day['free_spots'] <= 0:
         # Do nothing if there aren't any free spots
@@ -205,6 +195,8 @@ if __name__ == '__main__':
     user = config['user']
     password = config['password']
     url = config['url']
+    # Try to reserve these spots first
+    preferred_spots = config['preferred_spots']
 
     # Initialize webdriver
     debug_print('Starting driver...', 1)
