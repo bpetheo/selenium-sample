@@ -110,4 +110,4 @@ venv.bak/
 chrome_profile
 
 # Instance configuration
-config.ini
+config.json

@@ -1,5 +1,5 @@
 import argparse
-import configparser
+import json
 import time
 from datetime import datetime
 
@@ -199,9 +199,9 @@ if __name__ == '__main__':
     verbosity = args.verbose
 
     # Login credentials
-    config_parser = configparser.ConfigParser()
-    config_parser.read('config.ini')
-    config = config_parser[args.config_section]
+    with open('config.json', 'r') as f:
+        config = json.load(f)
+    config = config[args.config_section]
     user = config['user']
     password = config['password']
     url = config['url']
