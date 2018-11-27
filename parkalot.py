@@ -181,7 +181,7 @@ def refresh_page():
 if __name__ == '__main__':
     # Handle command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('config_section', type=str, help='which section to use from config.ini')
+    parser.add_argument('profile', type=str, help='which profile to use from config.json')
     parser.add_argument('--ignore', nargs='+', help="don't send alerts for these days")
     parser.add_argument('-v', '--verbose', action='count', help="set the verbosity of the output e.g.: -vv", default=0)
     parser.add_argument('--headless', action='store_true', help="run browser in headless mode")
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     # Login credentials
     with open('config.json', 'r') as f:
         config = json.load(f)
-    config = config[args.config_section]
+    config = config[args.profile]
     user = config['user']
     password = config['password']
     url = config['url']
@@ -203,7 +203,7 @@ if __name__ == '__main__':
     driver_options = webdriver.ChromeOptions()
     if args.headless:
         driver_options.add_argument('headless')
-    driver_options.add_argument('user-data-dir=./chrome_profile')
+    driver_options.add_argument('user-data-dir=./chrome_profile_' + args.profile)
     driver = webdriver.Chrome(chrome_options=driver_options)
     debug_print('Getting page...', 1)
     get_page(url + '/#/client')
