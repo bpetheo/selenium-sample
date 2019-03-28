@@ -19,15 +19,7 @@ def log_prefix():
 
 def is_logged_in():
     # Check if user is logged in
-    try:
-        # Search for the user email
-        # (it's located on the left panel if the user is logged in)
-        driver.find_element_by_xpath('//span[contains(translate(text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "{}")]'.format(user.lower()))
-        debug_print('Already logged in', 2)
-        return True
-    except NoSuchElementException:
-        debug_print('Not logged in', 1)
-    return False
+    return driver.current_url != login_url
 
 
 def login():
@@ -118,7 +110,7 @@ def do_reservation(btn_reserve):
         debug_print('Reservation confirmed', 1)
     except NoSuchElementException:
         debug_print('Captcha, refreshing', 1)
-        refresh_page()
+        driver.refresh()
 
 
 def reserve_spot(day):
@@ -146,7 +138,7 @@ def reserve_spot(day):
             if spot:
                 debug_print('Preferred spot {} is free, reserving'.format(ps), 1)
                 do_reservation(spot['btn_reserve'])
-                get_page(original_url)
+                driver.get(original_url)
                 return
             else:
                 debug_print('Preferred spot {} is not free, skipping'.format(ps), 1)
@@ -154,7 +146,7 @@ def reserve_spot(day):
         # If none of the preferred spaces are available simply reserve the first one available
         if len(free_spots) > 0:
             do_reservation(free_spots[0]['btn_reserve'])
-        get_page(original_url)
+        driver.get(original_url)
 
 
 def refresh_if_needed():
@@ -162,20 +154,10 @@ def refresh_if_needed():
     now = time.localtime()
     if now.tm_hour in [23, 0, 1] and now.tm_min == 0 and now.tm_sec == 0:
         debug_print('Refreshing page (new day)...', 1)
-        refresh_page()
+        driver.refresh()
     elif now.tm_hour not in [22, 23, 0] and now.tm_min == 58 and now.tm_sec == 0:
         debug_print('Refreshing page (hourly)...', 1)
-        refresh_page()
-
-
-def get_page(page_url):
-    driver.get(page_url)
-    time.sleep(1)
-
-
-def refresh_page():
-    driver.refresh()
-    time.sleep(1)
+        driver.refresh()
 
 
 if __name__ == '__main__':
@@ -195,6 +177,8 @@ if __name__ == '__main__':
     user = config['user']
     password = config['password']
     url = config['url']
+    reservation_url = url + '/#/client'
+    login_url = url + '/#/login'
     # Try to reserve these spots first
     preferred_spots = config['preferred_spots']
 
@@ -206,12 +190,15 @@ if __name__ == '__main__':
     driver_options.add_argument('user-data-dir=./chrome_profile_' + args.profile)
     driver = webdriver.Chrome(chrome_options=driver_options)
     debug_print('Getting page...', 1)
-    get_page(url + '/#/client')
+    driver.get(reservation_url)
     driver.implicitly_wait(5)
 
     # Start the main loop
     try:
         while True:
+            if driver.current_url != reservation_url:
+                driver.get(reservation_url)
+
             # Refresh the page periodically to prevent session expiration
             refresh_if_needed()
 
