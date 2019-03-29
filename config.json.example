@@ -2,22 +2,11 @@
     "profile_1": {
         "url": "https://sample.site.com",
         "user": "username1",
-        "password": "somesecret1",
-        "preferred_spots": [
-            "A 1010",
-            "A 1011",
-            "A 1012"
-        ]
+        "password": "somesecret1"
     },
     "profile_2": {
         "url": "https://sample.site.com",
         "user": "username2",
-        "password": "somesecret2",
-        "preferred_spots": [
-            "C 1099",
-            "C 1100",
-            "C 2012",
-            "C 2024"
-        ]
+        "password": "somesecret2"
     }
 }

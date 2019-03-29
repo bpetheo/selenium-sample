@@ -1,10 +1,116 @@
 import argparse
 import json
 import time
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+
+
+class Day:
+    free_spots, name, btn_reserve, btn_release, status_message, date, is_today, is_queue_active = [None] * 8
+
+    def __init__(self, day_web_element, idx):
+        self.date = (date.today() + timedelta(days=idx)).strftime('%Y-%m-%d')
+        self.is_today = (idx == 0)
+
+        try:
+            self.free_spots = int(day_web_element.find_element_by_xpath('.//span[contains(@class,"_600")]').text.split(' ')[0])
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            pass
+
+        try:
+            self.name = day_web_element.find_element_by_xpath('.//span[@class="pull-left _300"]/span').text.lower()
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            pass
+
+        try:
+            self.btn_reserve = day_web_element.find_element_by_xpath('.//button[contains(text(), "Reserve")]')
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            pass
+
+        try:
+            self.btn_release = day_web_element.find_element_by_xpath('.//button[contains(text(), "Release")]')
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            pass
+
+        try:
+            msg = day_web_element.find_element_by_xpath('.//div[contains(@class, "r-b box-header p-x-md p-y-sm yellow-300")]').text
+            if msg[0] == '':
+                msg = msg[1:]
+            self.status_message = msg
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            pass
+
+        try:
+            day_web_element.find_element_by_xpath('.//div[@class="modal-footer"]')
+            self.is_queue_active = True
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            self.is_queue_active = False
+
+    def __str__(self):
+        return self.name + ' (' + self.date + '): ' + self.status
+
+    @property
+    def status(self):
+        st = 'unavailable'
+
+        if self.btn_release:
+            st = 'reserved'
+
+        if self.btn_reserve:
+            st = 'free'
+
+        if self.status_message:
+            st += ' - ' + self.status_message
+
+        return st
+
+    @property
+    def reservable(self):
+        # don't reserve when already reserved
+        if not self.btn_reserve:
+            return False
+        # when ignored don't reserve
+        if self.ignored:
+            return False
+        # when the spot is for today and it's over 11:00 don't reserve
+        if self.is_today and time.localtime().tm_hour >= 11:
+            return False
+        # don't reserve until the queue dialog is active
+
+        # can be reserved in any other cases
+        return True
+
+    @property
+    def releasable(self):
+        # don't release if it's not reserved
+        if not self.btn_release:
+            return False
+        # release if it's ignored
+        if self.ignored:
+            return True
+        # when the spot is for today and it's over 19:00 release
+        if self.is_today and time.localtime().tm_hour >= 19:
+            return True
+        # don't do anything in any other cases
+        return False
+
+    @property
+    def ignored(self):
+        return False
+
+    def reserve(self):
+        try:
+            self.btn_reserve.click()
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            pass
+
+    def release(self):
+        try:
+            self.btn_release.click()
+        except (ValueError, NoSuchElementException, StaleElementReferenceException):
+            pass
 
 
 def debug_print(message, verbosity_level):
@@ -45,108 +151,13 @@ def login():
         driver.quit()
 
 
-def get_green_days(ignored_days):
+def get_days():
     # Get the days that where there are available spots for reservation
-    days = []
-    for day in driver.find_elements_by_xpath('//div[@class="box-color m-t-md sharp-shadow dark r m-l m-r"]'):
-        # The status is either "<n> spots available" or "No spots available" or "<building>  <spot>"
-        #  so the first word is only a valid integer when there are spots available
-        #  (that are not already booked by you) so we use this as a check.
-        try:
-            free_spots = int(day.find_element_by_xpath('.//span[contains(@class,"_600")]').text.split(' ')[0])
-            day_name = day.find_element_by_xpath('.//span[@class="pull-left _300"]/span').text.lower()
-
-            # Don't send alert for ignored days if any is given
-            if not (ignored_days and day_name in ignored_days):
-                days.append({
-                    'name': day_name,
-                    'free_spots': free_spots,
-                    'btn_more': day.find_element_by_xpath('.//button[contains(text(), "More")]'),
-                    'btn_reserve': day.find_element_by_xpath('.//button[contains(text(), "Reserve")]'),
-                })
-                debug_print('{} spot(s) found for {}!'.format(free_spots, day_name), 1)
-        except (ValueError, NoSuchElementException, StaleElementReferenceException):
-            pass
-    return days
-
-
-def get_free_spots():
-    # Cycle through the day boxes and collect those that have the 'Available' status message
-    free_spots = []
-    for spot in driver.find_elements_by_xpath('//div[@class="box"]'):
-        try:
-            spot_number = ' '.join(spot.find_element_by_xpath('.//h3[@class="text-ellipsis"]').text.split())
-            if 'Available' in spot.get_attribute('innerHTML'):
-                debug_print('{}: FREE'.format(spot_number), 2)
-                free_spots.append({
-                    'number': spot_number,
-                    'btn_reserve': spot.find_element_by_xpath('.//button[contains(text(), "Reserve")]'),
-                })
-            else:
-                debug_print('{}: OCCUPIED'.format(spot_number), 2)
-        except StaleElementReferenceException:
-            pass
-
-    # Sort the results by the 'number' attribute before returning
-    return sorted(free_spots, key=lambda k: k['number'])
-
-
-def get_spot_by_number(spot_number, available_spots):
-    # Check if spot number is in the available_spots list
-    # returns the spot object or 'None' if it's not in the list
-    for spot in available_spots:
-        if spot['number'] == spot_number:
-            return spot
-    return None
-
-
-def do_reservation(btn_reserve):
-    # Clicks the provided 'Reserve' button. Waits for confirmation
-    time.sleep(1)
-    btn_reserve.click()
-    debug_print('Waiting for reservation confirmation...', 2)
-    try:
-        driver.find_element_by_xpath('//div[contains(@class, "snackbar") and text() = "Successfully reserved"]')
-        debug_print('Reservation confirmed', 1)
-    except NoSuchElementException:
-        debug_print('Captcha, refreshing', 1)
-        driver.refresh()
-
-
-def reserve_spot(day):
-    # Reverse a spot on a given day
-    # In case multiple spots are available, it tries to reserve one from the preferred list
-    debug_print('Reserving spot...', 1)
-
-    if day['free_spots'] <= 0:
-        # Do nothing if there aren't any free spots
-        debug_print('No free spots, skipping', 1)
-        return
-    elif day['free_spots'] == 1:
-        # If there's only one free spot simply reserve it
-        debug_print('Only one spot available, reserving that one', 1)
-        do_reservation(day['btn_reserve'])
-        return
-    else:
-        # If there are multiple free spots, try to reserve the preferred ones first
-        debug_print('Multiple spots are available, trying to reserve a preferred one', 1)
-        original_url = driver.current_url
-        day['btn_more'].click()
-        free_spots = get_free_spots()
-        for ps in preferred_spots:
-            spot = get_spot_by_number(ps, free_spots)
-            if spot:
-                debug_print('Preferred spot {} is free, reserving'.format(ps), 1)
-                do_reservation(spot['btn_reserve'])
-                driver.get(original_url)
-                return
-            else:
-                debug_print('Preferred spot {} is not free, skipping'.format(ps), 1)
-
-        # If none of the preferred spaces are available simply reserve the first one available
-        if len(free_spots) > 0:
-            do_reservation(free_spots[0]['btn_reserve'])
-        driver.get(original_url)
+    ds = []
+    for idx, day_web_element in enumerate(driver.find_elements_by_xpath('//div[@class="box-color m-t-md sharp-shadow dark r m-l m-r"]')):
+        day = Day(day_web_element, idx)
+        ds.append(day)
+    return ds
 
 
 def refresh_if_needed():
@@ -164,7 +175,6 @@ if __name__ == '__main__':
     # Handle command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('profile', type=str, help='which profile to use from config.json')
-    parser.add_argument('--ignore', nargs='+', help="don't send alerts for these days")
     parser.add_argument('-v', '--verbose', action='count', help="set the verbosity of the output e.g.: -vv", default=0)
     parser.add_argument('--headless', action='store_true', help="run browser in headless mode")
     args = parser.parse_args()
@@ -179,8 +189,6 @@ if __name__ == '__main__':
     url = config['url']
     reservation_url = url + '/#/client'
     login_url = url + '/#/login'
-    # Try to reserve these spots first
-    preferred_spots = config['preferred_spots']
 
     # Initialize webdriver
     debug_print('Starting driver...', 1)
@@ -191,7 +199,7 @@ if __name__ == '__main__':
     driver = webdriver.Chrome(chrome_options=driver_options)
     debug_print('Getting page...', 1)
     driver.get(reservation_url)
-    driver.implicitly_wait(5)
+    debug_print('Done', 1)
 
     # Start the main loop
     try:
@@ -207,9 +215,16 @@ if __name__ == '__main__':
                 login()
 
             # Here's where the magic happens
-            green_days = get_green_days(args.ignore)
-            for green_day in green_days:
-                reserve_spot(green_day)
+            days = get_days()
+            for d in days:
+                if d.reservable:
+                    debug_print('{} ({}) is reservable, reserving...'.format(d.name, d.date), 1)
+                    d.reserve()
+                    debug_print('Done', 1)
+                if d.releasable:
+                    debug_print('{} ({}) is releasable, releasing...'.format(d.name, d.date), 1)
+                    d.release()
+                    debug_print('Done', 1)
 
             # Sleep the main loop for a second to avoid being a resource hog
             time.sleep(1)
